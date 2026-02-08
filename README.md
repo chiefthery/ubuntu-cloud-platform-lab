@@ -1,30 +1,66 @@
 
 # Ubuntu Cloud Platform Lab
 
-Production-style cloud application platform built on Ubuntu.
+This repository documents a hands-on cloud platform engineering project focused on building, deploying, and operating a containerized API service on Ubuntu Linux.
 
-**Narrative:** I can run apps, pipelines, containers, and APIs — not just servers.
+The project follows a production-style workflow: application → container → automation → cloud deployment → scaling → monitoring.
 
-This repo is intentionally separate from my RHEL/Rocky "Linux Enterprise Lab":
-- **Enterprise repo:** identity, DNS/NTP dependencies, hardening, automation (Ansible)
-- **This repo:** platform delivery (Docker, CI/CD, APIs, ECS, observability, CloudWatch/SSM)
+---
 
-## What you'll find
+## Objectives
 
-- **Docs**: architecture + platform design notes
-- **Labs**: reproducible, step-by-step runbooks
-- **Src**: a containerized FastAPI service
-- **CI/CD**: GitHub Actions pipeline (build/test → image → push → deploy)
-- **Observability**: logs/metrics/alerts
-- **AWS Platform**: ECS Fargate + ALB + autoscaling basics
-- **No-SSH Ops**: CloudWatch + SSM Session Manager
+- Build a Linux-hosted API service
+- Containerize applications using Docker
+- Implement CI/CD pipelines
+- Deploy to AWS container infrastructure
+- Configure scaling and logging
+- Practice platform operations
 
-## Quick start
+---
 
-Start here: `docs/00-index.md`
+## Stack
 
-## Repo principles
+- Ubuntu Linux (AWS EC2)
+- Python + FastAPI
+- Docker
+- GitHub Actions
+- AWS (ECR, ECS, ALB, CloudWatch)
+- Terraform
 
-- “Cattle, not pets”: everything should be reproducible
-- Logs/metrics are first-class
-- Incidents are documented as if in production
+---
+
+## Roadmap
+
+### Week 1 — API + Containerization
+
+- FastAPI service
+
+- `/health` and `/info` endpoints
+
+- Local execution on Ubuntu
+
+- Docker build and run
+
+### Week 2 — CI/CD + Deployment
+
+- GitHub Actions pipeline
+- Push images to ECR
+- Deploy to ECS
+
+### Week 3 — Scaling + Observability
+
+- Application Load Balancer
+- Autoscaling policies
+- Centralized logging
+- Metrics monitoring
+
+---
+
+## Repository Structure
+
+- **apps/:** Application source code
+- **.github/:** CI/CD workflows
+- **terraform/:** Cloud infrastructure
+- **docs/:** Technical writeups and incidents
+
+
