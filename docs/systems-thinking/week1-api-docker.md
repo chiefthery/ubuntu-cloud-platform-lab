@@ -1,35 +1,81 @@
-# Week 1: Docker + API
 
 ## Goals
 
-- Package a minimal API into a reproducible container image.
-- Run it locally on the EC2 host using Compose with predictable networking.
-- Ensure logs stream to stdout/stderr so the platform (Docker/Compose) can capture them.
-- Establish a baseline “service-like” lifecycle: build → run → restart → observe.
+- Package a minimal FastAPI service into a reproducible container image.
+- Run the service on Ubuntu (EC2) using Docker.
+- Enforce least-privilege by running as a non-root user.
+- Stream logs to stdout/stderr for platform-native observability.
+- Add container-native health checks.
+- Validate the container under read-only filesystem constraints.
 
 ---
 
 ## Architecture
 
-- **Host (EC2 Ubuntu):**
+### Host (EC2 Ubuntu)
 
     - Runs Docker Engine + Docker Compose
-
     - Publishes port **8000** to the outside world (or at least host network)
 
-- **Compose project network (`platform-api_default`):**
+### Container (platform-api)
 
-    - Private bridge network created by Compose for service isolation + DNS
+- Base image: python:3.12-slim
 
-- **Container (`api` service):**
+- Dedicated service user: `app` (UID/GID 10001)
 
-    - Runs `uvicorn` serving FastAPI on `0.0.0.0:8000`
+- Runs `uvicorn` serving FastAPI on 0.0.0.0:8000
 
-    - App endpoint `/health` used for functional verification
+- Exposes `/health` endpoint for verification
 
-- **Observability (basic):**
+- Logs to stdout
 
-    - App logs to stdout → captured by `docker compose logs`
+### Security Posture
+
+#### Non-root execution
+    
+The container creates and runs as a dedicated service user:
+
+```
+RUN groupadd --gid 10001 app && \
+    useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin app
+
+USER app
+```
+
+Why:
+- Prevents root execution inside the container
+- Reduces blast radius in case of compromise
+- Aligns with least-privilege principles used in Linux system hardening
+
+Verified via:
+
+```
+docker exec <container> whoami
+# app
+
+docker exec <container> id
+# uid=10001(app)
+```
+
+### Read-only filesystem validation
+
+Container tested with:
+
+`docker run --read-only --tmpfs /tmp -p 8000:8000 ubuntu-lab-app:nonroot`
+
+Why:
+
+- Ensures application does not rely on writable container filesystem
+
+- Forces ephemeral writes into `/tmp`
+
+- Mimics hardened runtime environments (ECS/Kubernetes)
+
+Result:
+
+- Service continued functioning normally
+
+- Health endpoint returned `200 OK`
 
 ---
 
@@ -43,7 +89,21 @@
 
 - **Compose restart policy** (`unless-stopped`) to mimic systemd-like resilience.
 
-- **Log to stdout** so containers can be treated as managed processes (instead of writing local log files inside the container).
+- **Container-native HEALTHCHECK**
+
+```
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+```
+
+    - Enables Docker (and future ECS/K8s) to determine container health
+    - Establishes contract for orchestration layer
+
+- **Logs to stdout:**
+
+    - Avoids writing local log files
+
+    - Allows `docker logs` / Compose / CloudWatch capture
 
 ---
 
@@ -57,6 +117,13 @@
 
     - `curl -s http://localhost:8000/health` returns `{"status":"ok"}`
 
-- **Logs are observable:**
+- **Healthcheck operational:**
 
-    - `docker compose logs --tail=50` shows uvicorn startup + health request + app log line
+    - `docker inspect --format='{{json .State.Health}}' <container>` shows `"Status": "healthy"`
+
+- **Process ownership:**
+
+```
+docker exec <container> whoami
+# app
+```
