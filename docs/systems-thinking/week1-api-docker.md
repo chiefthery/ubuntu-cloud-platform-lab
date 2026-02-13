@@ -14,8 +14,8 @@
 
 ### Host (EC2 Ubuntu)
 
-    - Runs Docker Engine + Docker Compose
-    - Publishes port **8000** to the outside world (or at least host network)
+- Runs Docker Engine + Docker Compose
+- Publishes port **8000** to the outside world (or at least host network)
 
 ### Container (platform-api)
 
@@ -81,29 +81,33 @@ Result:
 
 ## Key Decisions
 
-- **Pinned dependencies** in `requirements.txt` for reproducibility (avoid “works on my machine” drift).
+### Pinned dependencies
 
-- **Layer-caching build:** copy/install requirements before copying app code to speed rebuilds.
+- in `requirements.txt` for reproducibility (avoid “works on my machine” drift).
 
-- **Bind to** `0.0.0.0` inside container so Docker port-mapping works (binding to `127.0.0.1` would break external access).
+### Layer-caching build
 
-- **Compose restart policy** (`unless-stopped`) to mimic systemd-like resilience.
+-  copy/install requirements before copying app code to speed rebuilds.
 
-- **Container-native HEALTHCHECK**
+### Bind to `0.0.0.0` 
+
+- inside container so Docker port-mapping works (binding to `127.0.0.1` would break external access).
+
+### Container-native HEALTHCHECK
 
 ```
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
   CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
 ```
 
-    - Enables Docker (and future ECS/K8s) to determine container health
-    - Establishes contract for orchestration layer
+- Enables Docker (and future ECS/K8s) to determine container health
+- Establishes contract for orchestration layer
 
-- **Logs to stdout:**
+### Logs to stdout
 
-    - Avoids writing local log files
+- Avoids writing local log files
 
-    - Allows `docker logs` / Compose / CloudWatch capture
+- Allows `docker logs` / Compose / CloudWatch capture
 
 ---
 
